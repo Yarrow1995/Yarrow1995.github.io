@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title><![CDATA[test02]]></title>
+    <url>%2F2019%2F02%2F26%2Ftest02%2F</url>
+    <content type="text"><![CDATA[#标题一 ##标题二 ###标题三 ####标题四 #####标题五加粗 斜体 ~横线~ 无序列表1 无序列表2 有序列表 有序列表 代码块 引用块]]></content>
+  </entry>
+  <entry>
+    <title><![CDATA[post title]]></title>
+    <url>%2F2019%2F02%2F26%2Fpost-title%2F</url>
+    <content type="text"><![CDATA[标题一##标题二 ###标题三 ####标题四 #####标题五加粗斜体*无序代码 有序代码1 有序代码3 代码块 引用 vvv热热额]]></content>
+  </entry>
+  <entry>
+    <title><![CDATA[Hello World]]></title>
+    <url>%2F2019%2F02%2F26%2Fhello-world%2F</url>
+    <content type="text"><![CDATA[Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick StartCreate a new post1$ hexo new "My New Post" More info: Writing Run server1$ hexo server More info: Server Generate static files1$ hexo generate More info: Generating Deploy to remote sites1$ hexo deploy More info: Deployment]]></content>
+  </entry>
+</search>
