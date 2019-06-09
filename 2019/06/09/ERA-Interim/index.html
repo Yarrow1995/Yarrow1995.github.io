@@ -102,7 +102,7 @@
 <meta property="og:site_name" content="Madoka | Blog">
 <meta property="og:description" content="本文整理分享ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理代码。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal S">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-06-09T07:32:06.280Z">
+<meta property="og:updated_time" content="2019-06-09T07:49:25.777Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ERA-40&#x2F;Interim数据批量下载及Arcmap批处理">
 <meta name="twitter:description" content="本文整理分享ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理代码。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal S">
@@ -368,7 +368,7 @@
                 
               
 
-              <time title="创建时间：2019-06-09 15:10:04 / 修改时间：15:32:06" itemprop="dateCreated datePublished" datetime="2019-06-09T15:10:04+08:00">2019-06-09</time>
+              <time title="创建时间：2019-06-09 15:10:04 / 修改时间：15:49:25" itemprop="dateCreated datePublished" datetime="2019-06-09T15:10:04+08:00">2019-06-09</time>
             
 
             
@@ -495,7 +495,7 @@
 </li>
 </ul>
 <p>其实我从来没有学过R语言，以前用过的都是现有的包下载，处理数据+作图。第一次处理dbf的时候，用python鼓捣了很久，后来才明白应该从数据格式入手，然后才知道R语言的dataframe和dbf数据非常契合，立马解决读取的问题。然后写入的时候，又搞不清楚逻辑关系，想了很久。找不到“神奇的一键函数”，就只能用朴素的循环来写了。</p>
-<p>👆👆至此完成ERA-Interim再分析资料数据的批量下载、初步处理、获取流域面均值的批量操作。</p>
+<p>👆👆至此完成ERA-Interim再分析资料数据的批量下载、初步处理、获取流域面均值的批量操作。<br>以上栅格数据的处理好在是依次处理，于是可以整合到一个脚本里，只要把每次输入和输出的文件夹及文件命名好，当需要这些或者类似处理的卫星资料转为栅格文件后，就可以让他自己一口气跑了，开心( • ̀ω•́ )✧ </p>
 <hr>
 <p>第一次写技术内容的博客，内容与编排还有些生疏。<br>希望能帮助到一些同学，借此为自己积攒些人品，只求之后的科研工作能顺利些。</p>
 <p>❀❀❀</p>
