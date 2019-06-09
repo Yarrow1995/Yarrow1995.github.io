@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.0.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/cat01_128.ico?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/cat02_32.ico?v=7.0.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/cat02_16.ico?v=7.0.0">
+
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.0.0',
+    sidebar: {"position":"left","display":"post","offset":20,"b2t":true,"scrollpercent":true,"onmobile":false,"dimmer":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Stati">
+<meta name="keywords" content="ERA-Interim,python,matlab,R,code">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ERA-40&#x2F;Interim数据批量下载及Arcmap批处理">
+<meta property="og:url" content="http://yarrow1995.github.io/2019/06/09/ERA-Interim/index.html">
+<meta property="og:site_name" content="Madoka | Blog">
+<meta property="og:description" content="本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Stati">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-09T07:28:05.128Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ERA-40&#x2F;Interim数据批量下载及Arcmap批处理">
+<meta name="twitter:description" content="本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Stati">
+
+
+
+
+
+
+  <link rel="canonical" href="http://yarrow1995.github.io/2019/06/09/ERA-Interim/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>ERA-40/Interim数据批量下载及Arcmap批处理 | Madoka | Blog</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Madoka | Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">Madokaの观察计划</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yarrow1995.github.io/2019/06/09/ERA-Interim/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Madoka">
+      <meta itemprop="description" content="生活博/技术博">
+      <meta itemprop="image" content="/images/cat01_128.ico">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Madoka | Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">ERA-40/Interim数据批量下载及Arcmap批处理
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-09 15:10:04 / 修改时间：15:28:05" itemprop="dateCreated datePublished" datetime="2019-06-09T15:10:04+08:00">2019-06-09</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/code/" itemprop="url" rel="index"><span itemprop="name">code</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">11k</span>
+              
+
+              
+
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Statistics)等，相当于是ERA再分析数据集从下载到处理，在进行数据分析前一步的所有批处理。<a id="more"></a><br>虽然Arcmap里各类操作代码在帮助文档里都有说明，但还是需要稍作调整，并且整合ERA系列数据的处理步骤全网仅此一处，对正在下数据、处理数据的同学来说还是有帮助的，同时这也是自己近期工作的一个整理。では，始めよう( • ̀ω•́ )✧</p>
+<h2 id="00x01-数据简介"><a href="#00x01-数据简介" class="headerlink" title="00x01 数据简介"></a>00x01 数据简介</h2><p>ECMWF(European Centre for Medium-Range Weather Forecasts, 欧洲中期天气预报中心)主要的再分析数据资料为ERA系列，ERA-Interim是既ERA-15和ERA-40之后现持续更新的资料，下载地址<a href="https://www.ecmwf.int/en/forecasts/datasets/browse-reanalysis-datasets" target="_blank" rel="noopener">here</a>。该数据集有日值、月值和年值，分有再分析资料和预报资料，两年前我曾在<a href="https://www.jianshu.com/p/bc94f26de36d" target="_blank" rel="noopener">Melunaya的简书</a>里粗略地分析了一下，这里就不再细讲。对于中长尺度的水文研究，我们选用Monthly Means of Daily Means（月均值）。</p>
+<h2 id="00x02-批量下载"><a href="#00x02-批量下载" class="headerlink" title="00x02 批量下载"></a>00x02 批量下载</h2><p>在官网数据下载的页面中，有进行批处理的教程，对于选择多年数据下载需要写个循环。<a href="https://confluence.ecmwf.int/display/WEBAPI/ERA-Interim+monthly+means+of+daily+means+retrieval+efficiency" target="_blank" rel="noopener">example</a>里有介绍，这里就直接放代码吧。</p>
+<ul>
+<li>ecmwf_era_interim.py<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> calendar</span><br><span class="line"><span class="keyword">from</span> ecmwfapi <span class="keyword">import</span> ECMWFDataServer</span><br><span class="line">server = ECMWFDataServer()</span><br><span class="line">   </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">retrieve_era_interim</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">'''    </span></span><br><span class="line"><span class="string">       A function to demonstrate how to retrieve ERA-Interim monthly means data.   </span></span><br><span class="line"><span class="string">       Change the variables below to adapt to your needs.</span></span><br><span class="line"><span class="string">  </span></span><br><span class="line"><span class="string">       ERA-Interim monthly data is timestamped to the first of the month, hence dates</span></span><br><span class="line"><span class="string">       have to be specified as a list in this format:</span></span><br><span class="line"><span class="string">       '19950101/19950201/19950301/.../20051101/20051201'.</span></span><br><span class="line"><span class="string">  </span></span><br><span class="line"><span class="string">       Data is stored on one tape per decade, so for efficiency we split the date range into</span></span><br><span class="line"><span class="string">       decades, hence we get multiple date lists by decade:</span></span><br><span class="line"><span class="string">       '19950101/19950201/19950301/.../19991101/19991201'</span></span><br><span class="line"><span class="string">       '20000101/20000201/20000301/.../20051101/20051201'</span></span><br><span class="line"><span class="string">       '20000101/20000201/20000301/.../20051101/20051201'</span></span><br><span class="line"><span class="string">       In the example below the output data are organised as one file per decade:</span></span><br><span class="line"><span class="string">       'era_interim_moda_1990'</span></span><br><span class="line"><span class="string">       'era_interim_moda_2000'</span></span><br><span class="line"><span class="string">       'era_interim_moda_2010'</span></span><br><span class="line"><span class="string">       Please note that at the moment only decade 2010 is available.</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    yearStart = <span class="number">2010</span>                        <span class="comment"># adjust to your requirements - as of 2017-07 only 2010-01-01 onwards is available</span></span><br><span class="line">    yearEnd = <span class="number">2018</span>                          <span class="comment"># adjust to your requirements</span></span><br><span class="line">    months = [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">10</span>,<span class="number">11</span>,<span class="number">12</span>]   <span class="comment"># adjust to your requirements</span></span><br><span class="line">  </span><br><span class="line">    years = range(yearStart, yearEnd+<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">print</span> <span class="string">'Years: '</span>,years</span><br><span class="line">    decades = list(set([divmod(i, <span class="number">10</span>)[<span class="number">0</span>] <span class="keyword">for</span> i <span class="keyword">in</span> years]))</span><br><span class="line">    decades = [x * <span class="number">10</span> <span class="keyword">for</span> x <span class="keyword">in</span> decades]</span><br><span class="line">    decades.sort()</span><br><span class="line">    <span class="keyword">print</span> <span class="string">'Decades:'</span>, decades</span><br><span class="line">  </span><br><span class="line"><span class="comment"># loop through decades and create a month list</span></span><br><span class="line">    <span class="keyword">for</span> d <span class="keyword">in</span> decades:</span><br><span class="line">        requestDates=<span class="string">''</span></span><br><span class="line">        <span class="keyword">for</span> y <span class="keyword">in</span> years:</span><br><span class="line">            <span class="keyword">if</span> ((divmod(y,<span class="number">10</span>)[<span class="number">0</span>])*<span class="number">10</span>) == d:</span><br><span class="line">                <span class="keyword">for</span> m <span class="keyword">in</span> months:</span><br><span class="line">                    requestDates = requestDates+str(y)+(str(m)).zfill(<span class="number">2</span>)+<span class="string">'01/'</span></span><br><span class="line">        requestDates = requestDates[:<span class="number">-1</span>]</span><br><span class="line">        <span class="keyword">print</span> <span class="string">'Requesting dates: '</span>, requestDates</span><br><span class="line">        target = <span class="string">'era_interim_sw_%d'</span>% (d)    <span class="comment"># specifies the output file name #soilwater</span></span><br><span class="line">        <span class="keyword">print</span> <span class="string">'Output file: '</span>, target</span><br><span class="line">        era_interim_request(requestDates, d, target)</span><br><span class="line"></span><br><span class="line"><span class="comment"># the actual data request</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">era_interim_request</span><span class="params">(requestDates, decade, target)</span>:</span></span><br><span class="line">    <span class="string">'''</span></span><br><span class="line"><span class="string">        Change the keywords below to adapt to your needs.</span></span><br><span class="line"><span class="string">        The easiest way to do this is:</span></span><br><span class="line"><span class="string">        1. go to http://apps.ecmwf.int/datasets/data/interim-full-moda/levtype=sfc/</span></span><br><span class="line"><span class="string">        2. click through to the parameters you want, for any date</span></span><br><span class="line"><span class="string">        3. click 'View the MARS request'</span></span><br><span class="line"><span class="string">    '''</span></span><br><span class="line">    server.retrieve(&#123;</span><br><span class="line">        <span class="string">"class"</span>: <span class="string">"ei"</span>,              <span class="comment"># do not change</span></span><br><span class="line">        <span class="string">"dataset"</span>: <span class="string">"interim"</span>,       <span class="comment"># do not change</span></span><br><span class="line">        <span class="string">'expver'</span>: <span class="string">'1'</span>,              <span class="comment"># do not change</span></span><br><span class="line">        <span class="string">'stream'</span>: <span class="string">'moda'</span>,           <span class="comment"># monthly means of daily means</span></span><br><span class="line">        <span class="string">'type'</span>: <span class="string">'an'</span>,               <span class="comment"># analysis (versus forecast, fc)</span></span><br><span class="line">        <span class="string">'levtype'</span>: <span class="string">'sfc'</span>,           <span class="comment"># surface data (versus pressure level, pl, and model level, ml)</span></span><br><span class="line">        <span class="string">'param'</span>: <span class="string">'39.128/40.128/41.128/42.128'</span>,         <span class="comment"># here: parameter(Volumetric soil water layer 1,Volumetric soil water layer 2,</span></span><br><span class="line">                                                        <span class="comment"># Volumetric soil water layer 3, Volumetric soil water layer 4)</span></span><br><span class="line">        <span class="string">'grid'</span>: <span class="string">'0.125/0.125'</span>,        <span class="comment"># horizontal resolution of output in degrees lat/lon</span></span><br><span class="line">        <span class="string">'format'</span>: <span class="string">'netcdf'</span>,         <span class="comment"># get output in netcdf; only works with regular grids; for GRIB remove this line</span></span><br><span class="line">        <span class="string">'date'</span>: requestDates,       <span class="comment"># dates, set automatically from above</span></span><br><span class="line">        <span class="string">'decade'</span>: decade,           <span class="comment"># decade set automatically from above</span></span><br><span class="line">        <span class="string">'target'</span>: target,            <span class="comment"># output file name, set automatically from above</span></span><br><span class="line">    &#125;)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    retrieve_era_interim()</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>此处下载的数据是土壤水分数据，不同的数据和数据集参数不一样，要根据下载页面里的”MARS request”进行修改。ERA-40和ERA-Interim的不同点在于class、dataset，其他都一致。选择下载的数据格式为NetCDF文件，后缀为.nc。</p>
+<ul>
+<li>ecmwf_era_40.py<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"class"</span>: <span class="string">"e4"</span>, </span><br><span class="line"><span class="string">"dataset"</span>: <span class="string">"era40"</span>,</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="00x03-批处理"><a href="#00x03-批处理" class="headerlink" title="00x03 批处理"></a>00x03 批处理</h2><p>nc文件可以在panoply直接可视化，在处理前查看头文件信息和数据的大致情况，检查一下是否下错。</p>
+<h3 id="03-1-nc转tif"><a href="#03-1-nc转tif" class="headerlink" title="03.1 nc转tif"></a>03.1 nc转tif</h3><p>Arcmap不能直接处理nc数据，这里用Matlab将nc数据转为tif栅格数据。<br>Matlab有许多nc文件处理的相关函数，用ncread函数获取nc文件里的变量数据，用geotiffwrite函数将所需变量写入tif并输出。nc文件“按层存储”，读取需要两个循环，逐年与逐月。这段代码也是在网上拼拼凑凑出来的，参考作者过多不便列出，代码不属于我。</p>
+<ul>
+<li>ncread_tif.m<figure class="highlight r"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">% ERA-Interim-soilwater数据读取</span><br><span class="line">clc  </span><br><span class="line"></span><br><span class="line">InPath = <span class="string">'I:\Soil_Moisture_Data\ERA_Interim_Soilwater\';  </span></span><br><span class="line"><span class="string">InFile = strcat(InPath,'</span>era_interim_sw_2000.nc<span class="string">');  % 获取nc文件的基本信息  </span></span><br><span class="line"><span class="string">ncdisp(InFile)  </span></span><br><span class="line"><span class="string">  </span></span><br><span class="line"><span class="string">Lon = ncread(InFile,'</span>longitude<span class="string">'); %读取经度数据  </span></span><br><span class="line"><span class="string">Lat = ncread(InFile,'</span>latitude<span class="string">');  </span></span><br><span class="line"><span class="string">Sw1 = ncread(InFile,'</span>swvl1<span class="string">');</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">for i=1:10</span></span><br><span class="line"><span class="string">    for j=1:12</span></span><br><span class="line"><span class="string">        k=12*(i-1)+j;</span></span><br><span class="line"><span class="string">        Sw1_i=Sw1(:,:,k);</span></span><br><span class="line"><span class="string">        ii=1999+i;</span></span><br><span class="line"><span class="string">        </span></span><br><span class="line"><span class="string">        Sw1_i_Tif = strcat(InPath,'</span>sw1_<span class="string">',num2str(ii),'</span>_<span class="string">',num2str(j),'</span>.tif<span class="string">');</span></span><br><span class="line"><span class="string">        GeoRef = georasterref('</span>Rastersize<span class="string">',[1441,2880],'</span>Latlim<span class="string">',[-90,90],'</span>Lonlim<span class="string">',[0,360]);</span></span><br><span class="line"><span class="string">        geotiffwrite(Sw1_i_Tif,rot90(Sw1_i,1),GeoRef)</span></span><br><span class="line"><span class="string">    end   </span></span><br><span class="line"><span class="string">end</span></span><br><span class="line"><span class="string">disp('</span>finished<span class="string">')</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>需要注意的就是写地理坐标的时候注意栅格和经纬度的大小与范围，以及栅格的投影，是否需要旋转。<br>把.nc数据下载下来转为月尺度/日尺度的.tif之后，一般就可以给要求“下载卫星数据并初步处理留档备用”的导师交差了。</p>
+<h3 id="03-2-栅格处理"><a href="#03-2-栅格处理" class="headerlink" title="03.2 栅格处理"></a>03.2 栅格处理</h3><p>接下来是我前段时间需要获取研究区域的均值时，根据arcmap里的帮助文档，写的python批处理脚本。毕竟几十年的数据太多了，而且当需要对不同卫星资料进行对比的时候，处理操作大致一样，不写点代码自己手动batch的话就很累了。</p>
+<ol>
+<li>有的卫星数据分辨率不够高，需要插值。因为我处理的都是气象数据，插值的话用克里金插值。</li>
+<li>栅格插值先将栅格数据转为点矢量，再进行克里金插值，得到栅格数据。需要用到的工具有Conversion tools –&gt; From raster –&gt; Raster to point 和 Spatial analyst tools –&gt; Interpolation –&gt; Kriging.</li>
+</ol>
+<ul>
+<li><p>RasterToPoint.py</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Name: RasterToPoint_Ex.py</span></span><br><span class="line"><span class="comment"># Description: Converts a raster dataset to point features.</span></span><br><span class="line"><span class="comment"># Requirements: None</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Import system modules</span></span><br><span class="line"><span class="keyword">import</span> arcpy</span><br><span class="line"><span class="keyword">from</span> arcpy <span class="keyword">import</span> env</span><br><span class="line"></span><br><span class="line"><span class="comment"># Set environment settings</span></span><br><span class="line">arcpy.env.workspace = <span class="string">"H:\\***_year\\"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set local variables</span></span><br><span class="line">rasters = arcpy.ListRasters(<span class="string">"*"</span>,<span class="string">"tif"</span>)</span><br><span class="line">outpath = <span class="string">"H:\\***_year_ip\\"</span></span><br><span class="line">field = <span class="string">"Value"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Execute RasterToPoint</span></span><br><span class="line"><span class="keyword">for</span> raster <span class="keyword">in</span> rasters:</span><br><span class="line">    print(raster)</span><br><span class="line">    outpoint = outpath + <span class="string">"ret_"</span> + raster[<span class="number">5</span>:<span class="number">9</span>] + <span class="string">".shp"</span></span><br><span class="line">    arcpy.RasterToPoint_conversion(raster, outpoint, field)</span><br><span class="line">    print(<span class="string">"ret_"</span> + raster[<span class="number">5</span>:<span class="number">9</span>] + <span class="string">".shp"</span> + <span class="string">" has done"</span>)</span><br><span class="line">print(<span class="string">"All done"</span>)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>KigingInterpolation.py</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Name: Kriging_Interpolation_Ex.py</span></span><br><span class="line"><span class="comment"># coding=utf-8</span></span><br><span class="line"><span class="comment"># Description: Interpolates a surface from points using kriging.</span></span><br><span class="line"><span class="comment"># Requirements: Spatial Analyst Extension</span></span><br><span class="line"><span class="comment"># Import system modules</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> arcpy</span><br><span class="line"><span class="keyword">from</span> arcpy <span class="keyword">import</span> env</span><br><span class="line"><span class="keyword">from</span> arcpy.sa <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment"># Check out the ArcGIS Spatial Analyst extension license</span></span><br><span class="line">arcpy.CheckOutExtension(<span class="string">"Spatial"</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Set environment settings</span></span><br><span class="line">env.workspace = <span class="string">"H:\\***_year_ip\\"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set local variables</span></span><br><span class="line">features = arcpy.ListFeatureClasses() <span class="comment">#ListData function</span></span><br><span class="line">outpath = <span class="string">"H:\\***_year_ip\\"</span></span><br><span class="line"></span><br><span class="line">field = <span class="string">"grid_code"</span></span><br><span class="line">cellSize = <span class="number">0.01</span> <span class="comment">#插值后的栅格大小</span></span><br><span class="line"><span class="comment"># lagSize = default</span></span><br><span class="line"><span class="comment"># majorRange = default</span></span><br><span class="line"><span class="comment"># partialSill = dedfault</span></span><br><span class="line"><span class="comment"># nugget = default</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set complex variables</span></span><br><span class="line">kModelOrdinary = KrigingModelOrdinary(<span class="string">"SPHERICAL"</span>) <span class="comment">#大小写很关键</span></span><br><span class="line">kRadius = RadiusVariable(<span class="number">12</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Execute Kriging</span></span><br><span class="line"><span class="keyword">for</span> feature <span class="keyword">in</span> features:</span><br><span class="line">    print(feature)</span><br><span class="line">    outKriging = Kriging(feature, field, kModelOrdinary, cellSize, kRadius, <span class="string">"#"</span>) <span class="comment">#“#”表示不设置，为空</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Save the output</span></span><br><span class="line">    outKriging.save(outpath + <span class="string">"ret_ip"</span> + feature[<span class="number">4</span>:<span class="number">8</span>] + <span class="string">'.tif'</span>)</span><br><span class="line">    print(<span class="string">"ret_ip"</span> + feature[<span class="number">4</span>:<span class="number">8</span>] + <span class="string">'.tif has done'</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">print</span><span class="string">"All done!"</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ol start="3">
+<li>插值得到高分辨率后裁剪至自己所需的研究区域。用栅格clip就ok，Data management tools –&gt; Raster –&gt; Raster processing –&gt; clip.</li>
+</ol>
+<ul>
+<li>RasterClip.py<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> arcpy</span><br><span class="line">arcpy.CheckOutExtension(<span class="string">"spatial"</span>)</span><br><span class="line"></span><br><span class="line">arcpy.env.workspace = <span class="string">"I:\\***_tif\\"</span></span><br><span class="line"></span><br><span class="line">rasters = arcpy.ListRasters(<span class="string">"*"</span>,<span class="string">"tif"</span>)</span><br><span class="line"></span><br><span class="line">OutPath = <span class="string">"I:\\***\\"</span></span><br><span class="line"></span><br><span class="line">mask = <span class="string">"H:\\***.shp"</span> <span class="comment">#裁剪用的边界</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> raster <span class="keyword">in</span> rasters:</span><br><span class="line">    print(raster)</span><br><span class="line">    OutData = OutPath + <span class="string">"r"</span> + raster[<span class="number">0</span>:]</span><br><span class="line">    arcpy.Clip_management(raster, <span class="string">"#"</span>, OutData, feature,<span class="string">"0"</span>, <span class="string">"ClippingGeometry"</span>,<span class="string">"MAINTAIN_EXTENT"</span>)</span><br><span class="line">                                                      <span class="comment">#“0”表示nodata值设为0，默认为“#”</span></span><br><span class="line">    print(<span class="string">"r"</span> + raster[<span class="number">0</span>:] + <span class="string">" has done"</span>)</span><br><span class="line">print(<span class="string">"All done"</span>)</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<ol start="4">
+<li>为了得到研究区域里的面均值，用zonal工具，Spatial analyst tools –&gt; Zonal –&gt; Zonal statistics as table。得到dbf文件，可以直接用excel打开。</li>
+</ol>
+<ul>
+<li>ZonalStatisticsAsTables.py<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Name: ZonalStatisticsAsTable_Ex.py</span></span><br><span class="line"><span class="comment"># Description: Summarizes values of a raster within the zones of </span></span><br><span class="line"><span class="comment">#              another dataset and reports the results to a table.</span></span><br><span class="line"><span class="comment"># Requirements: Spatial Analyst Extension</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Import system modules</span></span><br><span class="line"><span class="keyword">import</span> arcpy</span><br><span class="line"><span class="keyword">from</span> arcpy <span class="keyword">import</span> env</span><br><span class="line"><span class="keyword">from</span> arcpy.sa <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment"># Set environment settings</span></span><br><span class="line">env.workspace = <span class="string">"H:\\***_year\\"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set local variables</span></span><br><span class="line">inZoneData = <span class="string">"H:\\***_watersh.shp"</span> </span><br><span class="line">zoneField = <span class="string">"RiverName"</span> <span class="comment">#按shp边界文件里的rivername进行数值提取</span></span><br><span class="line">rasters = arcpy.ListRasters(<span class="string">"*"</span>,<span class="string">"tif"</span>)</span><br><span class="line">outpath = <span class="string">"H:\\***_year\\"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Check out the ArcGIS Spatial Analyst extension license</span></span><br><span class="line">arcpy.CheckOutExtension(<span class="string">"Spatial"</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Execute ZonalStatisticsAsTable</span></span><br><span class="line"><span class="keyword">for</span> raster <span class="keyword">in</span> rasters:</span><br><span class="line">    print(raster)</span><br><span class="line">    outTable = outpath + <span class="string">"zonal_"</span> + raster[<span class="number">7</span>:<span class="number">11</span>] + <span class="string">".dbf"</span></span><br><span class="line">    outZSaT = ZonalStatisticsAsTable(inZoneData, zoneField, raster, outTable, <span class="string">"NODATA"</span>, <span class="string">"ALL"</span>) </span><br><span class="line">                                   <span class="comment">#“ALL”即表示所有参数都提取，包括有均值、最大值、最小值、总数等。</span></span><br><span class="line">    print(<span class="string">"zonal_"</span> + raster[<span class="number">7</span>:<span class="number">11</span>] + <span class="string">".dbf"</span> + <span class="string">" has done"</span>)</span><br><span class="line">print(<span class="string">"All done"</span>)</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="03-3-DBF文件批量写入"><a href="#03-3-DBF文件批量写入" class="headerlink" title="03.3 DBF文件批量写入"></a>03.3 DBF文件批量写入</h3><p>zonal出来后的表格是每个月一个表，需要统计月、年数据的话，得把每个表里各流域的数据汇总到一个表里。由于dbf格式实为数据框（dataframe），在R语言里可以很方便的读写，遂用R语言写了一段批量读写dbf数据的代码。</p>
+<ul>
+<li>WriteDBF.R<figure class="highlight r"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Name:读写dbf数据文件。</span></span><br><span class="line"><span class="comment"># dBase 是 Ashton-Tate 写的一个DOS程序，随后被Borland拥有。它有一种很流行的二进制无格式文件，以.dbf作为扩展名。</span></span><br><span class="line"><span class="comment"># dBase文件含有一个信息头，随后是一系列字段，因此和 R 的数据框非常类似。</span></span><br><span class="line"><span class="comment"># 数据本身以文本格式保存，可以包括字符，逻辑和数值字段，和以后版本的其它类型（见http://clicketyclick.dk/docs/data_types.html）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 目的：批量把Arcmap里zonal后的tables数据整合到一个表里。</span></span><br><span class="line"><span class="comment"># zonal后的tables类型为.dbf，按 rivername分了A河和B河，需要每流域的mean。</span></span><br><span class="line"><span class="comment"># 每个月一个表，1980-2015共36年，共432个表，</span></span><br><span class="line"><span class="comment"># 需要表头保留，还要增加一列时间。————增加时间列没有写出。增加写入列数据、从文件名中提取时间还不会。</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 编写思路：</span></span><br><span class="line"><span class="comment"># 遍历文件于集合myfiles中，逐个读取至数据框X，按行提取数据暂存数据框Y后写入新表格中。</span></span><br><span class="line"><span class="comment"># 需要先定义中间过程中的数据框；</span></span><br><span class="line"><span class="comment"># 逐个读取再存入需要借助中间变量，循环前为空，写入新表后重新回空。</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 我觉得R里面肯定有更简单些的函数，可以直接追加之类的……目前没找到。写这个时间用太久了，先就用这个循环处理吧。</span></span><br><span class="line"><span class="comment"># 以下以一个流域即一个表为例。</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">library</span>(foreign)</span><br><span class="line"></span><br><span class="line">myfiles &lt;- Sys.glob(<span class="string">"H:\\***_dbf\\*.dbf"</span>)</span><br><span class="line"><span class="comment">#返回的myfiles是一个装满满足条件的文件名的集合，而没有读取这些文件</span></span><br><span class="line">n &lt;- length(myfiles)</span><br><span class="line"><span class="comment">#先要定义空的数据框，保留数据框的表头，但数据为空</span></span><br><span class="line">dbf_ex &lt;- read.dbf(myfiles[<span class="number">1</span>])</span><br><span class="line">empty_dbf = dbf_ex[<span class="literal">FALSE</span>,]</span><br><span class="line"></span><br><span class="line">Ahe = empty_dbf</span><br><span class="line">zonal_A = empty_dbf</span><br><span class="line"></span><br><span class="line">i=<span class="number">1</span></span><br><span class="line"><span class="keyword">while</span>(i&lt;=n)&#123;</span><br><span class="line">  print(<span class="string">"*************************************"</span>)</span><br><span class="line">  print (i)</span><br><span class="line">  <span class="comment">#读取dbf数据文件</span></span><br><span class="line">  empty_dbf &lt;- read.dbf(myfiles[i])</span><br><span class="line">  print (empty_dbf)</span><br><span class="line">  <span class="comment">#以RiverName为行名，以便检索</span></span><br><span class="line">  rownames(empty_dbf)=empty_dbf$RiverName</span><br><span class="line">  <span class="comment">#按行RiverName，列'RiverName','MEAN'提取数据</span></span><br><span class="line">  Ahe &lt;- empty_dbf[<span class="string">'Ahe'</span>,c(<span class="string">'RiverName'</span>,<span class="string">'MEAN'</span>)]</span><br><span class="line">  <span class="comment">#行追加写入</span></span><br><span class="line">  zonal_A &lt;-rbind(zonal_A,Ahe)</span><br><span class="line">  <span class="comment">#print (zonal_A)</span></span><br><span class="line">  <span class="comment">#中间数据回空</span></span><br><span class="line">  empty_dbf = dbf_ex[<span class="literal">FALSE</span>,]</span><br><span class="line">  Ahe= empty_dbf</span><br><span class="line">  i=i+<span class="number">1</span></span><br><span class="line">&#125;</span><br><span class="line">write.dbf(zonal_A,file = <span class="string">"H:\\***zonalA.dbf"</span>)</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>其实我从来没有学过R语言，以前用过的都是现有的包下载，处理数据+作图。第一次处理dbf的时候，用python鼓捣了很久，后来才明白应该从数据格式入手，然后才知道R语言的dataframe和dbf数据非常契合，立马解决读取的问题。然后写入的时候，又搞不清楚逻辑关系，想了很久。找不到“神奇的一键函数”，就只能用朴素的循环来写了。</p>
+<p>👆👆至此完成ERA-Interim再分析资料数据的批量下载、初步处理、获取流域面均值的批量操作。</p>
+<hr>
+<p>第一次写技术内容的博客，内容与编排还有些生疏。<br>希望能帮助到一些同学，借此为自己积攒些人品，只求之后的科研工作能顺利些。</p>
+<p>❀❀❀</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/ERA-Interim/" rel="tag"><i class="fa fa-tag"></i> ERA-Interim</a>
+          
+            <a href="/tags/python/" rel="tag"><i class="fa fa-tag"></i> python</a>
+          
+            <a href="/tags/matlab/" rel="tag"><i class="fa fa-tag"></i> matlab</a>
+          
+            <a href="/tags/R/" rel="tag"><i class="fa fa-tag"></i> R</a>
+          
+            <a href="/tags/code/" rel="tag"><i class="fa fa-tag"></i> code</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/18/日常（二）/" rel="next" title="一些日常（二）">
+                <i class="fa fa-chevron-left"></i> 一些日常（二）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/cat01_128.ico" alt="Madoka">
+            
+              <p class="site-author-name" itemprop="name">Madoka</p>
+              <p class="site-description motion-element" itemprop="description">生活博/技术博</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">9</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">21</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/yarrow1995" title="GitHub &rarr; https://github.com/yarrow1995" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  
+                  
+                  
+                    
+                  
+                  <a href="mailto:melunaya@163.com" title="E-Mail &rarr; mailto:melunaya@163.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#00x01-数据简介"><span class="nav-number">1.</span> <span class="nav-text">00x01 数据简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#00x02-批量下载"><span class="nav-number">2.</span> <span class="nav-text">00x02 批量下载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#00x03-批处理"><span class="nav-number">3.</span> <span class="nav-text">00x03 批处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#03-1-nc转tif"><span class="nav-number">3.1.</span> <span class="nav-text">03.1 nc转tif</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#03-2-栅格处理"><span class="nav-number">3.2.</span> <span class="nav-text">03.2 栅格处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#03-3-DBF文件批量写入"><span class="nav-number">3.3.</span> <span class="nav-text">03.3 DBF文件批量写入</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+            <span id="scrollpercent"><span>0</span>%</span>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Madoka</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+    <span title="站点总字数">28k</span>
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a></div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=7.0.0"></script>
+
+  <script src="/js/src/motion.js?v=7.0.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=7.0.0"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=7.0.0"></script>
+
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=7.0.0"></script>
+<script src="/js/src/post-details.js?v=7.0.0"></script>
+
+
+
+  
+
+
+  <script src="/js/src/bootstrap.js?v=7.0.0"></script>
+
+
+  
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+<script src="/live2dw/lib/L2Dwidget.min.js?0c58a1486de42ac6cc1c59c7d98ae887"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"log":false,"model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"right","width":100,"height":200},"mobile":{"show":true}});</script></body>
+</html>
