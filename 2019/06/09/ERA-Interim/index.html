@@ -94,18 +94,18 @@
 
 
 
-  <meta name="description" content="本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Stati">
+  <meta name="description" content="本文整理分享ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理代码。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal S">
 <meta name="keywords" content="ERA-Interim,python,matlab,R,code">
 <meta property="og:type" content="article">
 <meta property="og:title" content="ERA-40&#x2F;Interim数据批量下载及Arcmap批处理">
 <meta property="og:url" content="http://yarrow1995.github.io/2019/06/09/ERA-Interim/index.html">
 <meta property="og:site_name" content="Madoka | Blog">
-<meta property="og:description" content="本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Stati">
+<meta property="og:description" content="本文整理分享ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理代码。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal S">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-06-09T07:28:05.128Z">
+<meta property="og:updated_time" content="2019-06-09T07:32:06.280Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ERA-40&#x2F;Interim数据批量下载及Arcmap批处理">
-<meta name="twitter:description" content="本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Stati">
+<meta name="twitter:description" content="本文整理分享ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理代码。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal S">
 
 
 
@@ -368,7 +368,7 @@
                 
               
 
-              <time title="创建时间：2019-06-09 15:10:04 / 修改时间：15:28:05" itemprop="dateCreated datePublished" datetime="2019-06-09T15:10:04+08:00">2019-06-09</time>
+              <time title="创建时间：2019-06-09 15:10:04 / 修改时间：15:32:06" itemprop="dateCreated datePublished" datetime="2019-06-09T15:10:04+08:00">2019-06-09</time>
             
 
             
@@ -443,7 +443,7 @@
       
 
       
-        <p>本文介绍ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Statistics)等，相当于是ERA再分析数据集从下载到处理，在进行数据分析前一步的所有批处理。<a id="more"></a><br>虽然Arcmap里各类操作代码在帮助文档里都有说明，但还是需要稍作调整，并且整合ERA系列数据的处理步骤全网仅此一处，对正在下数据、处理数据的同学来说还是有帮助的，同时这也是自己近期工作的一个整理。では，始めよう( • ̀ω•́ )✧</p>
+        <p>本文整理分享ERA-Interim系列数据的批量下载和ArcGIS里栅格数据的Arcpy批处理代码。批量下载的py脚本在官网中有很详细的介绍，本文的重点是数据下载后的一系列栅格处理。首先用matlab把.nc数据转为栅格，然后借助Arcpy整理了栅格数据处理代码，包括tif转shp、插值(Kriging Interpolation)、裁剪(Raster clip)和提取特定流域数据(Zonal Statistics)等，相当于是ERA再分析数据集从下载到处理，在进行数据分析前一步的所有批处理。<a id="more"></a><br>虽然Arcmap里各类操作代码在帮助文档里都有说明，但还是需要稍作调整，并且整合ERA系列数据的处理步骤全网仅此一处，对正在下数据、处理数据的同学来说还是有帮助的，同时这也是自己近期工作的一个整理。では，始めよう( • ̀ω•́ )✧</p>
 <h2 id="00x01-数据简介"><a href="#00x01-数据简介" class="headerlink" title="00x01 数据简介"></a>00x01 数据简介</h2><p>ECMWF(European Centre for Medium-Range Weather Forecasts, 欧洲中期天气预报中心)主要的再分析数据资料为ERA系列，ERA-Interim是既ERA-15和ERA-40之后现持续更新的资料，下载地址<a href="https://www.ecmwf.int/en/forecasts/datasets/browse-reanalysis-datasets" target="_blank" rel="noopener">here</a>。该数据集有日值、月值和年值，分有再分析资料和预报资料，两年前我曾在<a href="https://www.jianshu.com/p/bc94f26de36d" target="_blank" rel="noopener">Melunaya的简书</a>里粗略地分析了一下，这里就不再细讲。对于中长尺度的水文研究，我们选用Monthly Means of Daily Means（月均值）。</p>
 <h2 id="00x02-批量下载"><a href="#00x02-批量下载" class="headerlink" title="00x02 批量下载"></a>00x02 批量下载</h2><p>在官网数据下载的页面中，有进行批处理的教程，对于选择多年数据下载需要写个循环。<a href="https://confluence.ecmwf.int/display/WEBAPI/ERA-Interim+monthly+means+of+daily+means+retrieval+efficiency" target="_blank" rel="noopener">example</a>里有介绍，这里就直接放代码吧。</p>
 <ul>
